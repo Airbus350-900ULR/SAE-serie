@@ -3,16 +3,47 @@ from whoosh.index import open_dir
 from whoosh.qparser import MultifieldParser
 from whoosh import scoring
 import os
+import requests
 
 # Initialisation de Flask
 app = Flask(__name__)
 
 # Chemin vers l'index Whoosh
-index_dir = r"C:\Users\Etudiant\Documents\GitHub\SAE-serie\project\index"
+index_dir = r"./index"
+
+# Clé API et URL de base pour TMDb
+TMDB_API_KEY = "ff4251479664a8576a45d0809b94dd5f"
+TMDB_BASE_URL = "https://api.themoviedb.org/3"
+
+def get_tmdb_info(title):
+    """
+    Recherche les informations de la série sur TMDb.
+    """
+    search_url = f"{TMDB_BASE_URL}/search/tv"
+    params = {
+        "api_key": TMDB_API_KEY,
+        "query": title,
+        "language": "fr-FR"
+    }
+    response = requests.get(search_url, params=params)
+    if response.status_code == 200:
+        results = response.json().get("results", [])
+        if results:
+            first_result = results[0]
+            return {
+                "title": first_result.get("name"),
+                "description": first_result.get("overview"),
+                "image": f"https://image.tmdb.org/t/p/w500{first_result.get('poster_path')}" if first_result.get("poster_path") else None
+            }
+    return {
+        "title": title,
+        "description": "Aucune description disponible.",
+        "image": None
+    }
 
 def search_series(query, limit=5):
     """
-    Recherche les séries les plus pertinentes dans l'index Whoosh.
+    Recherche les séries les plus pertinentes dans l'index Whoosh et complète avec les informations TMDb.
     """
     try:
         ix = open_dir(index_dir)
@@ -27,9 +58,12 @@ def search_series(query, limit=5):
 
         recommendations = []
         for result in results:
+            tmdb_info = get_tmdb_info(result["title"])
             recommendations.append({
-                "title": result["title"],  # Titre de la série
-                "score": result.score      # Pertinence
+                "title": tmdb_info["title"],
+                "description": tmdb_info["description"],
+                "image": tmdb_info["image"],
+                "score": result.score
             })
         return {"results": recommendations}
 

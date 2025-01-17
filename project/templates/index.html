@@ -38,13 +38,26 @@
                 if (data.error) {
                     resultsDiv.innerHTML = `<p class="error">${data.error}</p>`;
                 } else if (data.results.length > 0) {
-                    const resultsList = document.createElement("ul");
                     data.results.forEach(result => {
-                        const listItem = document.createElement("li");
-                        listItem.textContent = `${result.title} (score : ${result.score.toFixed(2)})`;
-                        resultsList.appendChild(listItem);
+                        const itemDiv = document.createElement("div");
+                        itemDiv.className = "result-item";
+
+                        const img = document.createElement("img");
+                        img.src = result.image || "https://via.placeholder.com/150";
+                        img.alt = result.title;
+
+                        const title = document.createElement("h3");
+                        title.textContent = result.title;
+
+                        const description = document.createElement("p");
+                        description.textContent = result.description || "Aucune description disponible.";
+
+                        itemDiv.appendChild(img);
+                        itemDiv.appendChild(title);
+                        itemDiv.appendChild(description);
+
+                        resultsDiv.appendChild(itemDiv);
                     });
-                    resultsDiv.appendChild(resultsList);
                 } else {
                     resultsDiv.innerHTML = "<p>Aucun résultat trouvé.</p>";
                 }
