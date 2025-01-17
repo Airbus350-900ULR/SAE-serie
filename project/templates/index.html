@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche de Séries</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Recherche de Séries</h1>
+        <form id="search-form">
+            <input type="text" id="query" name="query" placeholder="Entrez un mot-clé..." required>
+            <button type="submit">Rechercher</button>
+        </form>
+        <div id="results">
+            <!-- Les résultats s'afficheront ici -->
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("search-form").addEventListener("submit", function (e) {
+            e.preventDefault();
+            const query = document.getElementById("query").value;
+
+            fetch("/search", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams({ query: query }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById("results");
+                resultsDiv.innerHTML = ""; // Effacer les anciens résultats
+
+                if (data.error) {
+                    resultsDiv.innerHTML = `<p class="error">${data.error}</p>`;
+                } else if (data.results.length > 0) {
+                    const resultsList = document.createElement("ul");
+                    data.results.forEach(result => {
+                        const listItem = document.createElement("li");
+                        listItem.textContent = `${result.title} (score : ${result.score.toFixed(2)})`;
+                        resultsList.appendChild(listItem);
+                    });
+                    resultsDiv.appendChild(resultsList);
+                } else {
+                    resultsDiv.innerHTML = "<p>Aucun résultat trouvé.</p>";
+                }
+            });
+        });
+    </script>
+</body>
+</html>
