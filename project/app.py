@@ -56,6 +56,7 @@ def get_local_info(title):
 def search_series(query, limit=5):
     """
     Recherche les séries les plus pertinentes dans l'index Whoosh et complète avec les informations locales.
+    Ajoute une priorité aux séries dont le titre contient directement le texte de recherche.
     """
     try:
         ix = open_dir(index_dir)
@@ -66,18 +67,36 @@ def search_series(query, limit=5):
         parser = MultifieldParser(["title", "content"], schema=ix.schema)
         parsed_query = parser.parse(query)
 
-        results = searcher.search(parsed_query, limit=limit)
+        # Recherche dans l'index
+        results = searcher.search(parsed_query, limit=None)  # Pas de limite initiale pour prioriser correctement
 
         recommendations = []
         for result in results:
             local_info = get_local_info(result["title"])
+
+            # Calcul de la priorité en fonction de la correspondance
+            title_lower = local_info["title"].lower()
+            query_lower = query.lower()
+
+            # Ajouter une priorité si le titre contient exactement ou partiellement la recherche
+            priority = 0
+            if query_lower == title_lower:
+                priority = 100  # Correspondance exacte
+            elif query_lower in title_lower:
+                priority = 50   # Correspondance partielle
+
             recommendations.append({
                 "title": local_info["title"],
                 "description": local_info["description"],
                 "image": local_info["image"],
-                "score": result.score
+                "score": result.score + priority  # Ajuster le score avec la priorité
             })
-        return {"results": recommendations}
+
+        # Trier les résultats par score décroissant
+        recommendations.sort(key=lambda x: x["score"], reverse=True)
+
+        # Retourner les résultats avec une limite
+        return {"results": recommendations[:limit]}
 
 # Route pour la page d'accueil
 @app.route("/")
