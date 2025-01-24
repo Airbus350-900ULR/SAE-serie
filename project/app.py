@@ -219,6 +219,20 @@ def mes_series():
     liked_series = get_liked_series()
     return render_template("mes_series.html", series=liked_series)
 
+@app.route("/unlike", methods=["POST"])
+def unlike():
+    data = request.get_json()
+    if not data or "title" not in data:
+        return jsonify({"error": "Titre manquant."})
+
+    title = data["title"]
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM liked_series WHERE title = ?", (title,))
+        conn.commit()
+
+    return jsonify({"success": True})
+
 # Lancer le serveur Flask
 if __name__ == "__main__":
     app.run(debug=True)
