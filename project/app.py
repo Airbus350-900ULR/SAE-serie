@@ -61,22 +61,28 @@ def normalize_query(query):
 def search_series(query, limit=5):
     """
     Recherche les séries les plus pertinentes dans l'index Whoosh et complète avec les informations locales.
-    Ajoute une priorité aux séries dont le titre contient directement le texte de recherche.
+    Gère les requêtes multi-mots pour qu'elles soient correctement interprétées.
     """
     try:
         ix = open_dir(index_dir)
     except Exception as e:
         return {"error": f"Erreur lors de l'ouverture de l'index : {e}"}
 
-    # Normaliser la requête pour correspondre aux titres collés
-    normalized_query = normalize_query(query)
+    # Normaliser la requête pour correspondre à l'index
+    normalized_query = normalize_query(query)  # Fusionne les mots pour correspondre à l'index Whoosh
 
     with ix.searcher(weighting=scoring.TF_IDF()) as searcher:
         parser = MultifieldParser(["title", "content"], schema=ix.schema)
-        parsed_query = parser.parse(normalized_query)
-
-        # Recherche dans l'index
-        results = searcher.search(parsed_query, limit=None)  # Pas de limite initiale pour prioriser correctement
+        
+        # Essayer plusieurs formats de requête
+        parsed_query = parser.parse(normalized_query)  # Recherche fusionnée
+        multi_word_query = parser.parse(query)        # Recherche multi-mots
+        
+        # Recherche avec la requête fusionnée
+        results = searcher.search(parsed_query, limit=None)
+        if not results:
+            # Si aucune correspondance, essayer avec la requête multi-mots
+            results = searcher.search(multi_word_query, limit=None)
 
         recommendations = []
         for result in results:
@@ -84,7 +90,7 @@ def search_series(query, limit=5):
 
             # Calcul de la priorité en fonction de la correspondance
             title_lower = local_info["title"].lower()
-            query_lower = normalized_query
+            query_lower = query.lower()
 
             # Ajouter une priorité si le titre contient exactement ou partiellement la recherche
             priority = 0
@@ -105,7 +111,6 @@ def search_series(query, limit=5):
 
         # Retourner les résultats avec une limite
         return {"results": recommendations[:limit]}
-
 
 # Route pour la page d'accueil
 @app.route("/")
