@@ -1,133 +1,223 @@
-from flask import Flask, render_template, request, jsonify
-from whoosh.index import open_dir
-from whoosh.qparser import MultifieldParser
-from whoosh import scoring
+from flask import Flask, render_template, request, jsonify, url_for, redirect
 import sqlite3
 import os
-import wordninja
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+import pickle
 
 # Initialisation de Flask
 app = Flask(__name__)
 
-# Chemin vers l'index Whoosh
-index_dir = r"C:\Users\etudiant\Documents\GitHub\SAE-serie\project\index"
-
+# Chemin vers le répertoire de base de l'application
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Chemin vers la base de données SQLite
-DATABASE = "./series.db"
+DATABASE = os.path.join(BASE_DIR, "series.db")
 
+# Dossier des images
+IMAGES_DIR = os.path.join(BASE_DIR, "static", "images")
+PLACEHOLDER_IMAGE = "placeholder.jpg"  # Nom du fichier de l'image par défaut
+
+# Chemin pour charger les données TF-IDF pré-calculées
+TFIDF_MODEL_FILE = os.path.join(BASE_DIR, "data", "tfidf_model.pkl")
+SERIES_NAMES_FILE = os.path.join(BASE_DIR, "data", "series_names.pkl")
+
+# Charger le modèle TF-IDF
+with open(TFIDF_MODEL_FILE, "rb") as tfidf_file, open(SERIES_NAMES_FILE, "rb") as names_file:
+    vectorizer, tfidf_matrix = pickle.load(tfidf_file)
+    series_names = pickle.load(names_file)
+print("Modèle TF-IDF chargé depuis le disque.")
+
+# Initialisation de la base de données
+with sqlite3.connect(DATABASE) as conn:
+    cursor = conn.cursor()
+    # Créer la table des séries likées si elle n'existe pas
+    cursor.execute("CREATE TABLE IF NOT EXISTS liked_series (title TEXT UNIQUE)")
+    conn.commit()
+
+# Normaliser un titre (supprimer espaces, mettre en minuscule)
 def normalize_title(title):
-    """
-    Divise un titre collé en mots avec des espaces.
-    """
-    split_title = wordninja.split(title)
-    return " ".join(split_title).capitalize()
+    return title.replace(" ", "").lower()
 
+# Fonction de recherche par similarité
+def search_series(query, limit=5):
+    query_vector = vectorizer.transform([query])
+    similarities = cosine_similarity(query_vector, tfidf_matrix).flatten()
+    ranked_indices = np.argsort(similarities)[::-1][:limit]
+
+    # Ajouter la priorité si le titre contient exactement le mot clé
+    exact_matches = [
+        (series, 1.0) for series in series_names
+        if normalize_title(query) in normalize_title(series)
+    ]
+    ranked_results = [(series_names[idx], similarities[idx]) for idx in ranked_indices]
+
+    # Mélanger les exact_matches en premier, suivis des résultats ordinaires
+    combined_results = exact_matches + ranked_results
+    seen_titles = set()
+    unique_results = []
+    for series, score in combined_results:
+        if series not in seen_titles:
+            unique_results.append((series, score))
+            seen_titles.add(series)
+    return unique_results[:limit]
+
+# Récupérer les informations locales (description et image)
 def get_local_info(title):
-    """
-    Récupère les informations locales pour une série depuis la base de données SQLite.
-    """
     normalized_title = normalize_title(title)
-
     with sqlite3.connect(DATABASE) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT description, image_path FROM series WHERE title = ?", (normalized_title,))
+        cursor.execute("SELECT description FROM series WHERE REPLACE(LOWER(title), ' ', '') = ?", (normalized_title,))
         row = cursor.fetchone()
 
     if row:
-        description, image_path = row
-        # Vérifier si l'image existe
-        if image_path and os.path.exists(image_path):
-            image_url = f"/static/images/{os.path.basename(image_path)}"
+        description = row[0]
+        # Rechercher l'image selon le format attendu
+        image_file = f"{normalized_title}.jpg"
+        image_path_full = os.path.join(IMAGES_DIR, image_file)
+        if os.path.exists(image_path_full):
+            image_url = url_for('static', filename=f'images/{image_file}')
         else:
-            image_url = None
+            image_url = url_for('static', filename=f'images/{PLACEHOLDER_IMAGE}')
         return {
-            "title": normalized_title,
+            "title": title,
             "description": description if description else "Description non disponible.",
             "image": image_url
         }
     else:
         return {
-            "title": normalized_title,
+            "title": title,
             "description": "Description non disponible.",
-            "image": None
+            "image": url_for('static', filename=f'images/{PLACEHOLDER_IMAGE}')
         }
-def normalize_query(query):
-    """
-    Normalise une requête en retirant les espaces pour correspondre aux titres collés dans l'index.
-    """
-    return query.replace(" ", "").lower()
 
-def search_series(query, limit=5):
-    """
-    Recherche les séries les plus pertinentes dans l'index Whoosh et complète avec les informations locales.
-    Gère les requêtes multi-mots pour qu'elles soient correctement interprétées.
-    """
-    try:
-        ix = open_dir(index_dir)
-    except Exception as e:
-        return {"error": f"Erreur lors de l'ouverture de l'index : {e}"}
+# Récupérer toutes les séries pour la page d'accueil
+def get_all_series():
+    series_list = []
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT title FROM series")
+        rows = cursor.fetchall()
+    for row in rows:
+        title = row[0]
+        local_info = get_local_info(title)
+        series_list.append({
+            "title": local_info["title"],
+            "description": local_info["description"],
+            "image": local_info["image"]
+        })
+    return series_list
 
-    # Normaliser la requête pour correspondre à l'index
-    normalized_query = normalize_query(query)  # Fusionne les mots pour correspondre à l'index Whoosh
+# Récupérer les séries likées
+def get_liked_series():
+    liked_series = []
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT title FROM liked_series")
+        rows = cursor.fetchall()
+    for row in rows:
+        title = row[0]
+        local_info = get_local_info(title)
+        liked_series.append({
+            "title": local_info["title"],
+            "description": local_info["description"],
+            "image": local_info["image"]
+        })
+    return liked_series
 
-    with ix.searcher(weighting=scoring.TF_IDF()) as searcher:
-        parser = MultifieldParser(["title", "content"], schema=ix.schema)
-        
-        # Essayer plusieurs formats de requête
-        parsed_query = parser.parse(normalized_query)  # Recherche fusionnée
-        multi_word_query = parser.parse(query)        # Recherche multi-mots
-        
-        # Recherche avec la requête fusionnée
-        results = searcher.search(parsed_query, limit=None)
-        if not results:
-            # Si aucune correspondance, essayer avec la requête multi-mots
-            results = searcher.search(multi_word_query, limit=None)
+# Obtenir des recommandations basées sur les séries likées
+def get_recommendations_based_on_likes(limit=5):
+    # Récupérer les titres des séries likées
+    liked_titles = [normalize_title(title["title"]) for title in get_liked_series()]
+    if not liked_titles:
+        return []
 
-        recommendations = []
-        for result in results:
-            local_info = get_local_info(result["title"])
+    # Calculer les similarités basées sur les séries likées
+    liked_vectors = vectorizer.transform(liked_titles)
+    similarities = cosine_similarity(liked_vectors, tfidf_matrix).mean(axis=0)
+    ranked_indices = np.argsort(similarities)[::-1]
 
-            # Calcul de la priorité en fonction de la correspondance
-            title_lower = local_info["title"].lower()
-            query_lower = query.lower()
-
-            # Ajouter une priorité si le titre contient exactement ou partiellement la recherche
-            priority = 0
-            if query_lower == title_lower:
-                priority = 100  # Correspondance exacte
-            elif query_lower in title_lower:
-                priority = 50   # Correspondance partielle
-
+    recommendations = []
+    for idx in ranked_indices:
+        series = series_names[idx]
+        normalized_series = normalize_title(series)
+        # Exclure les séries déjà likées
+        if normalized_series not in liked_titles:
+            local_info = get_local_info(series)
             recommendations.append({
                 "title": local_info["title"],
                 "description": local_info["description"],
-                "image": local_info["image"],
-                "score": result.score + priority  # Ajuster le score avec la priorité
+                "image": local_info["image"]
             })
+            if len(recommendations) == limit:
+                break
 
-        # Trier les résultats par score décroissant
-        recommendations.sort(key=lambda x: x["score"], reverse=True)
+    return recommendations
 
-        # Retourner les résultats avec une limite
-        return {"results": recommendations[:limit]}
+
+# Ajouter une série aux favoris
+def add_to_likes(title):
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute("INSERT INTO liked_series (title) VALUES (?)", (title,))
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
 
 # Route pour la page d'accueil
 @app.route("/")
 def index():
-    return render_template("index.html")
+    all_series = get_all_series()
+    recommendations = get_recommendations_based_on_likes()
+    return render_template("index.html", series=all_series, recommendations=recommendations)
+
+# Route pour afficher les séries likées
+@app.route("/liked")
+def liked():
+    liked_series = get_liked_series()
+    return render_template("liked.html", series=liked_series)
 
 # Route pour effectuer une recherche
 @app.route("/search", methods=["POST"])
 def search():
-    query = request.form.get("query")
+    query = request.get_json().get("query")
     if not query:
-        return jsonify({"error": "Veuillez entrer un texte pour effectuer la recherche."})
+        return jsonify({"error": "Veuillez entrer une requête."})
 
-    # Effectuer la recherche
     search_results = search_series(query)
+    results = []
+    for series, similarity in search_results:
+        local_info = get_local_info(series)
+        results.append({
+            "title": local_info["title"],
+            "description": local_info["description"],
+            "image": local_info["image"],
+            "similarity": round(similarity, 4)
+        })
 
-    return jsonify(search_results)
+    return jsonify({"results": results})
+
+
+
+
+@app.route("/like", methods=["POST"])
+def like():
+    data = request.get_json()  # Récupère le corps JSON de la requête
+    if not data or "title" not in data:
+        return jsonify({"error": "Titre manquant."})
+
+    title = data["title"]
+    success = add_to_likes(title)
+    return jsonify({"success": success})
+
+
+# Route pour afficher uniquement les séries likées
+@app.route("/mes-series")
+def mes_series():
+    liked_series = get_liked_series()
+    return render_template("mes_series.html", series=liked_series)
 
 # Lancer le serveur Flask
 if __name__ == "__main__":

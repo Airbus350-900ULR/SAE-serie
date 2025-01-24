@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Séries Likées</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Mes Séries Likées</h1>
+        <nav>
+            <a href="{{ url_for('index') }}">Accueil</a>
+        </nav>
+    </header>
+    <main>
+        {% if series %}
+            <div class="series-container">
+                {% for serie in series %}
+                    <div class="series-card">
+                        <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
+                        <div class="series-info">
+                            <h2>{{ serie.title }}</h2>
+                            <p>{{ serie.description }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Aucune série likée pour le moment.</p>
+        {% endif %}
+    </main>
+</body>
+</html>

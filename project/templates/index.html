@@ -1,71 +1,143 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recherche de Séries benjiwatch</title>
-    <link rel="stylesheet" href="static\styles.css">
-</head>
-<body>
-    <a href="/" class="logo">
-        <img src="static/images/logo.png" alt="Logo" />
-    </a>
-    <div class="container">
-        <h1>Recherche de Séries 2</h1>
-        <form id="search-form">
-            <input type="text" id="query" name="query" placeholder="Entrez un mot-clé..." required>
-            <button type="submit">Rechercher</button>
-        </form>
-        <div id="results">
-            <!-- Les résultats s'afficheront ici -->
-        </div>
-    </div>
-
+    <title>Recherche de Séries</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <script>
-        document.getElementById("search-form").addEventListener("submit", function (e) {
-            e.preventDefault();
-            const query = document.getElementById("query").value;
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchForm = document.getElementById('search-form');
+            const seriesContainer = document.querySelector('#all-series .series-container');
+            const recommendationsSection = document.getElementById('recommendations');
+            const baseUrl = "{{ url_for('static', filename='') }}";
 
-            fetch("/search", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-                body: new URLSearchParams({ query: query }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                const resultsDiv = document.getElementById("results");
-                resultsDiv.innerHTML = ""; // Effacer les anciens résultats
+            // Gérer la recherche
+            searchForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const formData = new FormData(searchForm);
+                const query = formData.get('query');
 
-                if (data.error) {
-                    resultsDiv.innerHTML = `<p class="error">${data.error}</p>`;
-                } else if (data.results.length > 0) {
-                    data.results.forEach(result => {
-                        const itemDiv = document.createElement("div");
-                        itemDiv.className = "result-item";
+                fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query: query })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        // Cacher les recommandations
+                        if (recommendationsSection) {
+                            recommendationsSection.style.display = 'none';
+                        }
 
-                        const img = document.createElement("img");
-                        img.src = result.image || "https://via.placeholder.com/150";
-                        img.alt = result.title;
+                        // Effacer les anciennes séries et afficher les résultats
+                        seriesContainer.innerHTML = '';
+                        data.results.forEach(serie => {
+                            const serieCard = document.createElement('div');
+                            serieCard.classList.add('series-card');
+                            serieCard.innerHTML = `
+                                <img src="${serie.image}" alt="Image de ${serie.title}" class="series-image">
+                                <div class="series-info">
+                                    <h2>${serie.title}</h2>
+                                    <p>${serie.description}</p>
+                                    <button class="like-btn" data-title="${serie.title}">J'aime</button>
+                                </div>
+                            `;
+                            seriesContainer.appendChild(serieCard);
+                        });
 
-                        const title = document.createElement("h3");
-                        title.textContent = result.title;
-
-                        const description = document.createElement("p");
-                        description.textContent = result.description || "Aucune description disponible.";
-
-                        itemDiv.appendChild(img);
-                        itemDiv.appendChild(title);
-                        itemDiv.appendChild(description);
-
-                        resultsDiv.appendChild(itemDiv);
-                    });
-                } else {
-                    resultsDiv.innerHTML = "<p>Aucun résultat trouvé.</p>";
-                }
+                        // Réattacher les événements "J'aime"
+                        addLikeButtonListeners();
+                    }
+                })
+                .catch(error => console.error('Erreur:', error));
             });
+
+            // Fonction pour les boutons "J'aime"
+            function addLikeButtonListeners() {
+                const likeButtons = document.querySelectorAll('.like-btn');
+                likeButtons.forEach(button => {
+                    button.addEventListener('click', function () {
+                        const title = this.getAttribute('data-title');
+
+                        fetch('/like', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ title: title })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                this.style.backgroundColor = 'green';
+                                this.innerText = 'Ajouté aux favoris';
+                            }
+                        })
+                        .catch(error => console.error('Erreur:', error));
+                    });
+                });
+            }
+
+            // Initialiser les boutons "J'aime"
+            addLikeButtonListeners();
         });
     </script>
+</head>
+<body>
+    <header>
+        <h1>Bienvenue sur la Recherche de Séries</h1>
+        <nav>
+            <a href="{{ url_for('index') }}" class="btn btn-primary">Accueil</a>
+            <a href="{{ url_for('mes_series') }}" class="btn btn-primary">Mes Séries Likées</a>
+        </nav>
+        <!-- Formulaire de recherche -->
+        <form id="search-form" method="POST">
+            <input type="text" name="query" placeholder="Rechercher une série..." required>
+            <button type="submit">Rechercher</button>
+        </form>
+    </header>
+
+    <main>
+        <!-- Recommandations -->
+        {% if recommendations %}
+            <section id="recommendations">
+                <h2>Recommandations pour vous</h2>
+                <div class="series-container">
+                    {% for serie in recommendations %}
+                        <div class="series-card">
+                            <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
+                            <div class="series-info">
+                                <h2>{{ serie.title }}</h2>
+                                <p>{{ serie.description }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        <!-- Toutes les séries -->
+        <section id="all-series">
+            <h2>Toutes les Séries</h2>
+            <div class="series-container">
+                {% for serie in series %}
+                    <div class="series-card">
+                        <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
+                        <div class="series-info">
+                            <h2>{{ serie.title }}</h2>
+                            <p>{{ serie.description }}</p>
+                            <button class="like-btn" data-title="{{ serie.title }}">J'aime</button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
 </body>
 </html>
