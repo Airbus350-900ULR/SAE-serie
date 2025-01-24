@@ -15,6 +15,24 @@ body {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
+.logo {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    display: block;
+    width: 100px; 
+    height: 100px;
+}
+
+.logo img {
+    width: 100%;
+    height: auto;
+    border-radius: 50%; 
+    border: 2px solid #ddd; 
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); 
+    cursor: pointer;
+}
+
 h1 {
     text-align: center;
     color: #333;

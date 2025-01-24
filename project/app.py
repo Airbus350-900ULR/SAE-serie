@@ -10,7 +10,8 @@ import wordninja
 app = Flask(__name__)
 
 # Chemin vers l'index Whoosh
-index_dir = r"./index"
+index_dir = r"C:\Users\sergo\Documents\GitHub\SAE-serie\project\index"
+
 
 # Chemin vers la base de données SQLite
 DATABASE = "./series.db"

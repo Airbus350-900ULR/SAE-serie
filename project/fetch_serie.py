@@ -168,7 +168,7 @@ def clear_database():
  
 if __name__ == "__main__":
     # Chemin vers l'index Whoosh
-    INDEX_DIR = r"C:\Users\Etudiant\Documents\GitHub\SAE-serie\project\index"
+    INDEX_DIR = r"C:\Users\sergo\Documents\GitHub\SAE-serie\project\index"
 
     # Initialiser la base de données et réinitialiser son contenu
     init_db()
