@@ -52,6 +52,11 @@ def get_local_info(title):
             "description": "Description non disponible.",
             "image": None
         }
+def normalize_query(query):
+    """
+    Normalise une requête en retirant les espaces pour correspondre aux titres collés dans l'index.
+    """
+    return query.replace(" ", "").lower()
 
 def search_series(query, limit=5):
     """
@@ -63,9 +68,12 @@ def search_series(query, limit=5):
     except Exception as e:
         return {"error": f"Erreur lors de l'ouverture de l'index : {e}"}
 
+    # Normaliser la requête pour correspondre aux titres collés
+    normalized_query = normalize_query(query)
+
     with ix.searcher(weighting=scoring.TF_IDF()) as searcher:
         parser = MultifieldParser(["title", "content"], schema=ix.schema)
-        parsed_query = parser.parse(query)
+        parsed_query = parser.parse(normalized_query)
 
         # Recherche dans l'index
         results = searcher.search(parsed_query, limit=None)  # Pas de limite initiale pour prioriser correctement
@@ -76,7 +84,7 @@ def search_series(query, limit=5):
 
             # Calcul de la priorité en fonction de la correspondance
             title_lower = local_info["title"].lower()
-            query_lower = query.lower()
+            query_lower = normalized_query
 
             # Ajouter une priorité si le titre contient exactement ou partiellement la recherche
             priority = 0
@@ -97,6 +105,7 @@ def search_series(query, limit=5):
 
         # Retourner les résultats avec une limite
         return {"results": recommendations[:limit]}
+
 
 # Route pour la page d'accueil
 @app.route("/")
