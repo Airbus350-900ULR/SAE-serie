@@ -2,8 +2,9 @@ from flask import Flask, render_template, request, jsonify
 from whoosh.index import open_dir
 from whoosh.qparser import MultifieldParser
 from whoosh import scoring
+import sqlite3
 import os
-import requests
+import wordninja
 
 # Initialisation de Flask
 app = Flask(__name__)
@@ -11,39 +12,49 @@ app = Flask(__name__)
 # Chemin vers l'index Whoosh
 index_dir = r"./index"
 
-# Clé API et URL de base pour TMDb
-TMDB_API_KEY = "ff4251479664a8576a45d0809b94dd5f"
-TMDB_BASE_URL = "https://api.themoviedb.org/3"
+# Chemin vers la base de données SQLite
+DATABASE = "./series.db"
 
-def get_tmdb_info(title):
+def normalize_title(title):
     """
-    Recherche les informations de la série sur TMDb.
+    Divise un titre collé en mots avec des espaces.
     """
-    search_url = f"{TMDB_BASE_URL}/search/tv"
-    params = {
-        "api_key": TMDB_API_KEY,
-        "query": title,
-        "language": "fr-FR"
-    }
-    response = requests.get(search_url, params=params)
-    if response.status_code == 200:
-        results = response.json().get("results", [])
-        if results:
-            first_result = results[0]
-            return {
-                "title": first_result.get("name"),
-                "description": first_result.get("overview"),
-                "image": f"https://image.tmdb.org/t/p/w500{first_result.get('poster_path')}" if first_result.get("poster_path") else None
-            }
-    return {
-        "title": title,
-        "description": "Aucune description disponible.",
-        "image": None
-    }
+    split_title = wordninja.split(title)
+    return " ".join(split_title).capitalize()
+
+def get_local_info(title):
+    """
+    Récupère les informations locales pour une série depuis la base de données SQLite.
+    """
+    normalized_title = normalize_title(title)
+
+    with sqlite3.connect(DATABASE) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT description, image_path FROM series WHERE title = ?", (normalized_title,))
+        row = cursor.fetchone()
+
+    if row:
+        description, image_path = row
+        # Vérifier si l'image existe
+        if image_path and os.path.exists(image_path):
+            image_url = f"/static/images/{os.path.basename(image_path)}"
+        else:
+            image_url = None
+        return {
+            "title": normalized_title,
+            "description": description if description else "Description non disponible.",
+            "image": image_url
+        }
+    else:
+        return {
+            "title": normalized_title,
+            "description": "Description non disponible.",
+            "image": None
+        }
 
 def search_series(query, limit=5):
     """
-    Recherche les séries les plus pertinentes dans l'index Whoosh et complète avec les informations TMDb.
+    Recherche les séries les plus pertinentes dans l'index Whoosh et complète avec les informations locales.
     """
     try:
         ix = open_dir(index_dir)
@@ -58,11 +69,11 @@ def search_series(query, limit=5):
 
         recommendations = []
         for result in results:
-            tmdb_info = get_tmdb_info(result["title"])
+            local_info = get_local_info(result["title"])
             recommendations.append({
-                "title": tmdb_info["title"],
-                "description": tmdb_info["description"],
-                "image": tmdb_info["image"],
+                "title": local_info["title"],
+                "description": local_info["description"],
+                "image": local_info["image"],
                 "score": result.score
             })
         return {"results": recommendations}
