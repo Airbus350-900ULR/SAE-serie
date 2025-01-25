@@ -35,13 +35,14 @@
     </script>
 </head>
 <body>
-    <header>
-        <h1>Mes Séries Likées</h1>
+    <header style="height: 400px;">
+        <img/>
         <nav>
-            <a href="{{ url_for('index') }}">Accueil</a>
+            <img style="width: 150px; height: 150px; opacity: 0.9;position: absolute;left: 10px;" src="../static/images/logo.png" alt="logo">
+            <a style="width: 200px;height: 50px;padding: 10px 20px;text-decoration: none;color: black;background-color: #a3952c;border-radius: 10px;" href="{{ url_for('index') }}">Accueil</a>
         </nav>
     </header>
-    <main>
+    <main style="background-color: #2E2E2E;">
         {% if series %}
             <div class="series-container">
                 {% for serie in series %}
@@ -49,8 +50,8 @@
                         <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
                         <div class="series-info">
                             <h2>{{ serie.title }}</h2>
-                            <p>{{ serie.description }}</p>
-                            <button class="delete-btn" data-title="{{ serie.title }}">Supprimer</button>
+                            <p style="text-align: left;">{{ serie.description }}</p>
+                            <button class="delete-btn" data-title="{{ serie.title }}"><b>Supprimer</b>  </button>
                         </div>
                     </div>
                 {% endfor %}
