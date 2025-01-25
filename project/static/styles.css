@@ -159,8 +159,3 @@ nav .btn:hover {
     bottom: 15px;
     left: 30%;
 }
-main {
-    background-color: #2E2E2E;
-    min-height: 100vh; /* Occupe au moins toute la hauteur de la fenêtre */
-    padding: 20px; /* Ajoute un peu d'espace autour du contenu */
-}
