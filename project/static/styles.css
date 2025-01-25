@@ -7,27 +7,24 @@ body {
 
 header {
     text-align: center;
-    padding: 20px;
-    background-color: #4CAF50;
-    color: white;
+    height: 650px;
+    background-image: url(../static/images/movie.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
 }
-
-header h1 {
-    margin: 0;
-    font-size: 2rem;
+main{
+    background-color: rgb(46,46,46);
 }
-
-header form {
-    margin-top: 10px;
-}
-
 header input[type="text"] {
     padding: 10px;
     font-size: 1rem;
-    width: 60%;
+    width: 1000px;
     max-width: 400px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
+    border: none;
+    border-radius: 15px;
+    background-color: rgba(62, 66, 69, 0.5);
+    color: #ddd;
 }
 
 header button {
@@ -35,9 +32,9 @@ header button {
     font-size: 1rem;
     color: white;
     background-color: #333;
-    border: none;
-    border-radius: 5px;
+    border-radius: 15px;
     cursor: pointer;
+    border: none;
 }
 
 header button:hover {
@@ -56,23 +53,25 @@ header button:hover {
 }
 
 .series-card {
-    background-color: white;
-    border: 1px solid #ddd;
+    background-color: #0C0C0C;
     border-radius: 5px;
     padding: 15px;
     text-align: center;
+    position: relative;
+    height: 1000px;
+    overflow: hidden;
 }
 
 .series-card img {
     width: 100%;
-    height: auto;
+    height: 370px;
     border-radius: 5px;
 }
 
 .series-card h2 {
     font-size: 1.2rem;
     margin: 10px 0;
-    color: #4CAF50;
+    color: #a3952c;
 }
 
 .series-card p {
@@ -86,9 +85,11 @@ header button:hover {
     font-size: 1.2rem;
 }
 nav .btn {
+    margin-top:20px;
+    margin-right: 20px;
     display: inline-block;
-    background-color: #007bff;
-    color: white;
+    background-color: #a3952c;
+    color: black;
     padding: 10px 20px;
     text-decoration: none;
     border-radius: 5px;
@@ -96,5 +97,65 @@ nav .btn {
 }
 
 nav .btn:hover {
-    background-color: #0056b3;
+    background-color: #c5b82a;
+}
+.logo{
+    width: 190px;
+    height: 150px;
+    position: absolute;
+    left: 190px;
+    top: 80px;
+    opacity: 0.8;
+}
+.webDesc{
+    font-family:aptos;
+    margin-top: 190px;
+    margin-left: 80px;
+    font-size: 60px;
+    color: rgb(209, 194, 34);
+}
+.HeadDivOne{
+    display: flex;
+    justify-content: right;
+}
+.HeadDivTwo{
+    display: flex;
+    justify-content: space-around;
+}
+.HeadMiniOne{
+    width:40%;
+    display: flex;
+}
+.HeadMiniTwo{
+    width:40%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 200px;
+}
+::placeholder{
+    color: #f3eeee;
+}
+.like-btn{
+    color: #0C0C0C;
+    background-color: #a3952c;
+    border: none;
+    width: 80px;
+    height: 30px;
+    font-size: 18px;
+    position: absolute;
+    bottom: 10px;
+    left: 36%;
+}
+.delete-btn{
+    color: #0C0C0C;
+    background-color: #a3952c;
+    border: none;
+    width: 100px;
+    height: 40px;
+    padding: 10px 20px;
+    margin-top: 80px;
+    position: absolute;
+    bottom: 15px;
+    left: 30%;
 }
