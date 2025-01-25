@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mes Séries Likées</title>
+    <title>Mes séries aimées</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="icon" type="image/png" href="static/images/logo.png">
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const deleteButtons = document.querySelectorAll('.delete-btn');
@@ -57,7 +58,7 @@
                 {% endfor %}
             </div>
         {% else %}
-            <p>Aucune série likée pour le moment.</p>
+            <p style="color: white; text-align: center;">Aucune série ajoutée pour le moment.</p>
         {% endif %}
     </main>
 </body>
