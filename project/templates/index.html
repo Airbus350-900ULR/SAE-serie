@@ -44,7 +44,7 @@
                                 <img src="${serie.image}" alt="Image de ${serie.title}" class="series-image">
                                 <div class="series-info">
                                     <h2>${serie.title}</h2>
-                                    <p>${serie.description}</p>
+                                    <p style="text-align:left;">${serie.description}</p>
                                     <button class="like-btn" data-title="${serie.title}">J'aime</button>
                                 </div>
                             `;
@@ -76,7 +76,7 @@
                         .then(data => {
                             if (data.success) {
                                 this.style.backgroundColor = 'green';
-                                this.innerText = 'Ajouté aux favoris';
+                                this.innerText = 'Likée';
                             }
                         })
                         .catch(error => console.error('Erreur:', error));
@@ -91,29 +91,42 @@
 </head>
 <body>
     <header>
-        <h1>benjiflix</h1>
-        <nav>
-            <a href="{{ url_for('index') }}" class="btn btn-primary">Accueil</a>
-            <a href="{{ url_for('mes_series') }}" class="btn btn-primary">Mes Séries</a>
-        </nav>
+        <div class="HeadDivOne">
+            <nav>
+                <a href="{{ url_for('index') }}" class="btn btn-primary"><b>Accueil</b></a>
+                <a href="{{ url_for('mes_series') }}" class="btn btn-primary"><b>Mes Séries</b></a>
+            </nav>
+        </div>
+        <div class="HeadDivTwo">
+            <div class="HeadMiniOne">
+                <img class="logo" src="../static/images/logo.png"/>
+                <p class="webDesc"><i><b>Vos séries<br> sur le bout<br> des doigts</b></i></p>
+            </div>
+            <div class="HeadMiniTwo">
+                <form id="search-form" method="POST">
+                    <input type="text" name="query" placeholder="Rechercher une série..." required>
+                    <button type="submit">Rechercher</button>
+                </form>
+            </div>
+        </div>
+        
+        
         <!-- Formulaire de recherche -->
-        <form id="search-form" method="POST">
-            <input type="text" name="query" placeholder="Rechercher une série..." required>
-            <button type="submit">Rechercher</button>
-        </form>
+        
+
     </header>
 
     <main>
         {% if recommendations %}
         <section id="recommendations">
-            <h2>Recommandations pour vous</h2>
+            <h2 style="margin: 0;color:#a3952c;padding-top: 20px;padding-left: 20px;">Recommandations pour vous</h2>
             <div class="series-container">
                 {% for serie in recommendations %}
                 <div class="series-card">
                     <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
                     <div class="series-info">
                         <h2>{{ serie.title }}</h2>  <!-- Titre correctement affiché -->
-                        <p>{{ serie.description }}</p>
+                        <p style="text-align: left;">{{ serie.description }}</p>
                     </div>
                 </div>
                 {% endfor %}
@@ -124,14 +137,14 @@
 
         <!-- Toutes les séries -->
         <section id="all-series">
-            <h2>Toutes les Séries</h2>
-            <div class="series-container">
+            <h2 style="margin: 0;color:#a3952c;padding-top: 20px;padding-left: 20px;">Résultats de votre recherche</h2>
+            <div class="series-container">  
                 {% for serie in series %}
                     <div class="series-card">
                         <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
                         <div class="series-info">
                             <h2>{{ serie.title }}</h2>
-                            <p>{{ serie.description }}</p>
+                            <p style="text-align:left;">{{ serie.description }}</p>
                             <button class="like-btn" data-title="{{ serie.title }}">J'aime</button>
                         </div>
                     </div>
