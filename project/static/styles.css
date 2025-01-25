@@ -98,8 +98,6 @@ nav .btn {
 
 nav .btn:hover {
     background-color: #c5b82a;
-<<<<<<< Updated upstream
-=======
 }
 .logo{
     width: 190px;
@@ -160,7 +158,7 @@ nav .btn:hover {
     position: absolute;
     bottom: 15px;
     left: 30%;
->>>>>>> Stashed changes
+
 }
 .logo{
     width: 190px;
