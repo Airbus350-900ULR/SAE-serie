@@ -104,23 +104,23 @@
     </header>
 
     <main>
-        <!-- Recommandations -->
         {% if recommendations %}
-            <section id="recommendations">
-                <h2>Recommandations pour vous</h2>
-                <div class="series-container">
-                    {% for serie in recommendations %}
-                        <div class="series-card">
-                            <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
-                            <div class="series-info">
-                                <h2>{{ serie.title }}</h2>
-                                <p>{{ serie.description }}</p>
-                            </div>
-                        </div>
-                    {% endfor %}
+        <section id="recommendations">
+            <h2>Recommandations pour vous</h2>
+            <div class="series-container">
+                {% for serie in recommendations %}
+                <div class="series-card">
+                    <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
+                    <div class="series-info">
+                        <h2>{{ serie.title }}</h2>  <!-- Titre correctement affiché -->
+                        <p>{{ serie.description }}</p>
+                    </div>
                 </div>
-            </section>
+                {% endfor %}
+            </div>
+        </section>
         {% endif %}
+        
 
         <!-- Toutes les séries -->
         <section id="all-series">
