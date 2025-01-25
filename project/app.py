@@ -67,20 +67,19 @@ def get_local_info(title):
     normalized_title = normalize_title(title)
     with sqlite3.connect(DATABASE) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT description FROM series WHERE REPLACE(LOWER(title), ' ', '') = ?", (normalized_title,))
+        cursor.execute("SELECT title, description FROM series WHERE REPLACE(LOWER(title), ' ', '') = ?", (normalized_title,))
         row = cursor.fetchone()
 
     if row:
-        description = row[0]
-        # Rechercher l'image selon le format attendu
-        image_file = f"{normalized_title}.jpg"
+        original_title, description = row
+        image_file = f"{normalize_title(original_title)}.jpg"
         image_path_full = os.path.join(IMAGES_DIR, image_file)
         if os.path.exists(image_path_full):
             image_url = url_for('static', filename=f'images/{image_file}')
         else:
             image_url = url_for('static', filename=f'images/{PLACEHOLDER_IMAGE}')
         return {
-            "title": title,
+            "title": original_title,  # Retourner le titre formaté depuis la base
             "description": description if description else "Description non disponible.",
             "image": image_url
         }
@@ -125,10 +124,23 @@ def get_liked_series():
         })
     return liked_series
 
+app.route("/")
+def index():
+    all_series = get_all_series()
+    recommendations = get_recommendations_based_on_likes()
+
+    # Log pour diagnostiquer le problème
+    print("Recommandations envoyées :", recommendations)
+
+    return render_template("index.html", series=all_series, recommendations=recommendations)
+
+
 # Obtenir des recommandations basées sur les séries likées
 def get_recommendations_based_on_likes(limit=5):
-    # Récupérer les titres des séries likées
+    # Récupérer les titres des séries likées et les normaliser pour comparaison
     liked_titles = [normalize_title(title["title"]) for title in get_liked_series()]
+    print("Titres likés normalisés :", liked_titles)
+
     if not liked_titles:
         return []
 
@@ -139,20 +151,24 @@ def get_recommendations_based_on_likes(limit=5):
 
     recommendations = []
     for idx in ranked_indices:
-        series = series_names[idx]
-        normalized_series = normalize_title(series)
-        # Exclure les séries déjà likées
-        if normalized_series not in liked_titles:
+        series = series_names[idx]  # Utiliser le titre d'origine
+        normalized_series = normalize_title(series)  # Normaliser uniquement pour comparaison
+        if normalized_series not in liked_titles:  # Exclure les séries déjà likées
+            # Récupérer les informations de la base
             local_info = get_local_info(series)
             recommendations.append({
-                "title": local_info["title"],
+                "title": local_info["title"],  # Utiliser le titre d'origine de la base
                 "description": local_info["description"],
                 "image": local_info["image"]
             })
             if len(recommendations) == limit:
                 break
 
+    print("Recommandations finales :", [rec["title"] for rec in recommendations])
     return recommendations
+
+
+
 
 
 # Ajouter une série aux favoris
