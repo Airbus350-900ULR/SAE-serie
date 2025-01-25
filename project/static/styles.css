@@ -50,9 +50,6 @@ header button:hover {
     gap: 20px;
     padding: 20px;
 }
-.series-info h2 {
-    text-transform: capitalize;
-}
 
 .series-card {
     background-color: white;
