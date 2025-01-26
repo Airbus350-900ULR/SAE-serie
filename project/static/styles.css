@@ -208,6 +208,12 @@ nav .btn:hover {
     bottom: 10px;
     left: 36%;
 }
+.like-btn.liked {
+    background-color: #EDE8BF; /* Vert */
+    color: white;
+    border-color: #0C0C0C;
+}
+
 .delete-btn{
     color: #0C0C0C;
     background-color: #a3952c;

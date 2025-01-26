@@ -181,6 +181,11 @@ def add_to_likes(title):
             return True
         except sqlite3.IntegrityError:
             return False
+            
+@app.route("/liked-titles", methods=["GET"])
+def liked_titles():
+    liked_series = [title["title"] for title in get_liked_series()]
+    return jsonify({"liked_titles": liked_series})
 
 # Route pour la page d'accueil
 @app.route("/")

@@ -5,25 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Benjaflix</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="icon" type="image/png" href="static/images/logo.png">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const searchForm = document.getElementById('search-form');
             const seriesContainer = document.querySelector('#all-series .series-container');
             const recommendationsSection = document.getElementById('recommendations');
             const baseUrl = "{{ url_for('static', filename='') }}";
+            let likedTitles = [];
 
-            // Gérer la recherche
+            // Charger les titres likés au chargement de la page
+            function fetchLikedTitles() {
+                fetch('/liked-titles', { method: 'GET' })
+                    .then(response => response.json())
+                    .then(data => {
+                        likedTitles = data.liked_titles || [];
+                        updateLikeButtons();
+                    })
+                    .catch(error => console.error('Erreur lors du chargement des séries likées:', error));
+            }
+
+            // Mettre à jour l'état des boutons "J'aime"
+            function updateLikeButtons() {
+                const likeButtons = document.querySelectorAll('.like-btn');
+                likeButtons.forEach(button => {
+                    const title = button.getAttribute('data-title');
+                    if (likedTitles.includes(title)) {
+                        button.classList.add('liked');
+                        button.innerText = 'Likée';
+                        button.style.backgroundColor = 'green';
+                    } else {
+                        button.classList.remove('liked');
+                        button.innerText = 'J\'aime';
+                        button.style.backgroundColor = '';
+                    }
+                });
+            }
+
+            // Gestion de la recherche
             searchForm.addEventListener('submit', function (event) {
                 event.preventDefault();
-                const formData = new FormData(searchForm);
-                const query = formData.get('query');
+                const query = new FormData(searchForm).get('query');
 
                 fetch('/search', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: query })
                 })
                 .then(response => response.json())
@@ -56,10 +82,10 @@
                         addLikeButtonListeners();
                     }
                 })
-                .catch(error => console.error('Erreur:', error));
+                .catch(error => console.error('Erreur lors de la recherche:', error));
             });
 
-            // Fonction pour les boutons "J'aime"
+            // Ajouter les événements "J'aime" aux boutons
             function addLikeButtonListeners() {
                 const likeButtons = document.querySelectorAll('.like-btn');
                 likeButtons.forEach(button => {
@@ -68,24 +94,25 @@
 
                         fetch('/like', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
+                            headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ title: title })
                         })
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                this.style.backgroundColor = 'green';
-                                this.innerText = 'Likée';
+                                likedTitles.push(title);
+                                updateLikeButtons();
+                            } else {
+                                console.error('Erreur lors de l\'ajout aux favoris');
                             }
                         })
-                        .catch(error => console.error('Erreur:', error));
+                        .catch(error => console.error('Erreur lors de l\'ajout aux favoris:', error));
                     });
                 });
             }
 
-            // Initialiser les boutons "J'aime"
+            // Initialisation
+            fetchLikedTitles();
             addLikeButtonListeners();
         });
     </script>
@@ -100,7 +127,7 @@
         </div>
         <div class="HeadDivTwo">
             <div class="HeadMiniOne">
-                <img class="logo" src="../static/images/logo.png"/>
+                <img class="logo" src="{{ url_for('static', filename='images/logo.png') }}" />
                 <p class="webDesc"><i><b>Vos séries<br> sur le bout<br> des doigts</b></i></p>
             </div>
             <div class="HeadMiniTwo">
@@ -110,11 +137,6 @@
                 </form>
             </div>
         </div>
-        
-        
-        <!-- Formulaire de recherche -->
-        
-
     </header>
 
     <main>
@@ -126,29 +148,28 @@
                 <div class="series-card">
                     <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
                     <div class="series-info">
-                        <h2>{{ serie.title }}</h2>  <!-- Titre correctement affiché -->
+                        <h2>{{ serie.title }}</h2>
                         <p style="text-align: left;">{{ serie.description }}</p>
+                        <button class="like-btn" data-title="{{ serie.title }}">J'aime</button>
                     </div>
                 </div>
                 {% endfor %}
             </div>
         </section>
         {% endif %}
-        
 
-        <!-- Toutes les séries -->
         <section id="all-series">
             <h2 style="margin: 0;color:#a3952c;padding-top: 20px;padding-left: 20px;">Les séries</h2>
             <div class="series-container">  
                 {% for serie in series %}
-                    <div class="series-card">
-                        <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
-                        <div class="series-info">
-                            <h2>{{ serie.title }}</h2>
-                            <p style="text-align:left;">{{ serie.description }}</p>
-                            <button class="like-btn" data-title="{{ serie.title }}">J'aime</button>
-                        </div>
+                <div class="series-card">
+                    <img src="{{ serie.image }}" alt="Image de {{ serie.title }}" class="series-image">
+                    <div class="series-info">
+                        <h2>{{ serie.title }}</h2>
+                        <p style="text-align:left;">{{ serie.description }}</p>
+                        <button class="like-btn" data-title="{{ serie.title }}">J'aime</button>
                     </div>
+                </div>
                 {% endfor %}
             </div>
         </section>
